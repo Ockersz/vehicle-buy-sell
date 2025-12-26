@@ -1,4 +1,9 @@
-const { S3Client } = require('@aws-sdk/client-s3');
+const {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+} = require('@aws-sdk/client-s3');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const { config } = require('./env');
 
 /**
@@ -31,4 +36,26 @@ function createS3Client() {
 
 const s3 = createS3Client();
 
-module.exports = { s3 };
+async function presignPut({
+  bucket,
+  key,
+  contentType,
+  expiresInSeconds = 300,
+}) {
+  const cmd = new PutObjectCommand({
+    Bucket: bucket,
+    Key: key,
+    ContentType: contentType,
+  });
+  return getSignedUrl(s3, cmd, { expiresIn: expiresInSeconds });
+}
+
+async function deleteObject({ bucket, key }) {
+  const cmd = new DeleteObjectCommand({ Bucket: bucket, Key: key });
+  await s3.send(cmd);
+}
+
+const s3Bucket = config.s3.bucket;
+const s3PublicBaseUrl = config.s3.publicBaseUrl; // already trimmed in env.js
+
+module.exports = { s3, presignPut, deleteObject, s3Bucket, s3PublicBaseUrl };

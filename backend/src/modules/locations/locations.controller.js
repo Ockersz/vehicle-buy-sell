@@ -1,24 +1,35 @@
-const locationsService = require('./locations.service');
+const service = require('./locations.service');
 
-async function getDistricts(req, res, next) {
+async function listDistricts(req, res, next) {
   try {
-    const items = await locationsService.listDistricts();
+    const items = await service.listDistricts();
     res.json({ ok: true, items });
-  } catch (err) {
-    next(err);
+  } catch (e) {
+    next(e);
   }
 }
 
-async function getCities(req, res, next) {
+async function listCitiesByDistrict(req, res, next) {
   try {
-    const districtId = req.query.district_id
-      ? Number(req.query.district_id)
-      : null;
-    const items = await locationsService.listCities(districtId);
+    const districtId = Number(req.params.districtId);
+    if (!Number.isFinite(districtId))
+      return res.status(400).json({ ok: false, message: 'Invalid districtId' });
+
+    const items = await service.listCitiesByDistrict(districtId);
     res.json({ ok: true, items });
-  } catch (err) {
-    next(err);
+  } catch (e) {
+    next(e);
   }
 }
 
-module.exports = { getDistricts, getCities };
+async function searchLocations(req, res, next) {
+  try {
+    const q = String(req.query.q || '').trim();
+    const result = await service.searchLocations(q);
+    res.json({ ok: true, ...result });
+  } catch (e) {
+    next(e);
+  }
+}
+
+module.exports = { listDistricts, listCitiesByDistrict, searchLocations };

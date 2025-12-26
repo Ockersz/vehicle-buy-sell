@@ -1,9 +1,10 @@
 const express = require('express');
-const { getDistricts, getCities } = require('./locations.controller');
+const c = require('./locations.controller');
 
 const router = express.Router();
 
-router.get('/districts', getDistricts);
-router.get('/cities', getCities);
+router.get('/districts', c.listDistricts);
+router.get('/districts/:districtId/cities', c.listCitiesByDistrict);
+router.get('/search', c.searchLocations);
 
 module.exports = router;

@@ -7,18 +7,37 @@ async function listDistricts() {
   return rows;
 }
 
-async function listCities(districtId) {
-  if (districtId) {
-    const [rows] = await db.query(
-      'SELECT id, district_id, name FROM cities WHERE district_id = :districtId ORDER BY name ASC',
-      { districtId }
-    );
-    return rows;
-  }
+async function listCitiesByDistrict(districtId) {
   const [rows] = await db.query(
-    'SELECT id, district_id, name FROM cities ORDER BY name ASC LIMIT 500'
+    'SELECT id, district_id, name FROM cities WHERE district_id = :district_id ORDER BY name ASC',
+    { district_id: districtId }
   );
   return rows;
 }
 
-module.exports = { listDistricts, listCities };
+async function searchLocations(q) {
+  if (!q || q.length < 2) {
+    return { districts: [], cities: [] };
+  }
+
+  const like = `%${q}%`;
+
+  const [districts] = await db.query(
+    'SELECT id, name FROM districts WHERE name LIKE :q ORDER BY name ASC LIMIT 20',
+    { q: like }
+  );
+
+  const [cities] = await db.query(
+    `SELECT c.id, c.name, c.district_id, d.name AS district_name
+     FROM cities c
+     JOIN districts d ON d.id = c.district_id
+     WHERE c.name LIKE :q
+     ORDER BY c.name ASC
+     LIMIT 50`,
+    { q: like }
+  );
+
+  return { districts, cities };
+}
+
+module.exports = { listDistricts, listCitiesByDistrict, searchLocations };

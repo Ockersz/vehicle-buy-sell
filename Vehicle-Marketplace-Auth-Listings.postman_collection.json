@@ -990,6 +990,110 @@
           }
         }
       ]
+    },
+    {
+      "name": "Locations",
+      "item": [
+        {
+          "name": "List Districts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/locations/districts",
+              "host": ["{{baseUrl}}"],
+              "path": ["locations", "districts"]
+            }
+          }
+        },
+        {
+          "name": "List Cities By District",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/locations/districts/5/cities",
+              "host": ["{{baseUrl}}"],
+              "path": ["locations", "districts", "5", "cities"]
+            }
+          }
+        },
+        {
+          "name": "Search Locations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/locations/search?q=Colo",
+              "host": ["{{baseUrl}}"],
+              "path": ["locations", "search"],
+              "query": [{ "key": "q", "value": "Colo" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Uploads",
+      "item": [
+        {
+          "name": "Presign One",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/uploads/presign",
+              "host": ["{{baseUrl}}"],
+              "path": ["uploads", "presign"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"file_name\": \"car1.jpg\",\n  \"content_type\": \"image/jpeg\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Presign Multi (max 10)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/uploads/presign-multi",
+              "host": ["{{baseUrl}}"],
+              "path": ["uploads", "presign-multi"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"files\": [\n    { \"file_name\": \"car1.jpg\", \"content_type\": \"image/jpeg\" },\n    { \"file_name\": \"car2.webp\", \"content_type\": \"image/webp\" }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Object (by key)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/uploads",
+              "host": ["{{baseUrl}}"],
+              "path": ["uploads"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"uploads/2025/u10/xxxx.jpg\"\n}"
+            }
+          }
+        }
+      ]
     }
   ]
 }
