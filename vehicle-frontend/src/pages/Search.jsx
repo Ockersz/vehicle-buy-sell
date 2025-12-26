@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchListings } from "../services/listings";
+import { searchListings } from "../services/listings";
 
 export default function Search() {
   const [loading, setLoading] = useState(true);
@@ -12,7 +12,7 @@ export default function Search() {
         setLoading(true);
         setError("");
 
-        const res = await fetchListings({
+        const res = await searchListings({
           page: 1,
           page_size: 10,
         });
