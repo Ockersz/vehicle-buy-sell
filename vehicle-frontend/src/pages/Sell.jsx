@@ -40,7 +40,9 @@ export default function Sell() {
     fuel_type: "",
     transmission: "",
 
+    district_id: "",
     district: "",
+    city_id: "",
     city: "",
 
     images: [],
@@ -66,7 +68,7 @@ export default function Sell() {
     }
 
     if (step.key === "location") {
-      return form.district.trim() && form.city.trim();
+      return form.district_id && form.city_id;
     }
 
     if (step.key === "photos") {
