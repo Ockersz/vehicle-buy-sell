@@ -1,53 +1,105 @@
-import { useMemo } from "react";
-
-/**
- * For now mock it.
- * Later replace with API:
- *  - GET /locations/districts
- *  - GET /locations/cities?district_id=...
- */
-const DISTRICTS = [
-  "Colombo",
-  "Gampaha",
-  "Kalutara",
-  "Kandy",
-  "Galle",
-  "Matara",
-  "Kurunegala",
-  "Puttalam",
-];
-
-const CITIES_BY_DISTRICT = {
-  Colombo: ["Colombo", "Dehiwala-Mount Lavinia", "Maharagama", "Kotte", "Moratuwa", "Nugegoda", "Piliyandala"],
-  Gampaha: ["Gampaha", "Negombo", "Wattala", "Ja-Ela", "Kadawatha", "Kelaniya", "Minuwangoda"],
-  Kalutara: ["Kalutara", "Panadura", "Horana", "Aluthgama", "Beruwala"],
-  Kandy: ["Kandy", "Peradeniya", "Katugastota", "Gampola", "Nawalapitiya"],
-  Galle: ["Galle", "Hikkaduwa", "Ambalangoda", "Elpitiya"],
-  Matara: ["Matara", "Weligama", "Akuressa"],
-  Kurunegala: ["Kurunegala", "Kuliyapitiya", "Narammala", "Mawathagama", "Pannala"],
-  Puttalam: ["Puttalam", "Chilaw", "Wennappuwa"],
-};
+import { useEffect, useMemo, useState } from "react";
+import { getCities, getDistricts } from "../../services/locations";
 
 export default function Step3Location({ form, setForm }) {
-  const district = form?.district || "";
-  const city = form?.city || "";
+  const districtId = form?.district_id ?? "";
+  const cityId = form?.city_id ?? "";
 
-  const cities = useMemo(() => {
-    if (!district) return [];
-    return CITIES_BY_DISTRICT[district] || [];
-  }, [district]);
+  const [districts, setDistricts] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [loadingDistricts, setLoadingDistricts] = useState(false);
+  const [loadingCities, setLoadingCities] = useState(false);
+  const [error, setError] = useState("");
+
+  // Load all districts once
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setLoadingDistricts(true);
+        setError("");
+        const res = await getDistricts();
+        if (!alive) return;
+        setDistricts(res.items || []);
+      } catch (e) {
+        if (!alive) return;
+        setError(
+          e?.response?.data?.message ||
+            e.message ||
+            "Failed to load districts"
+        );
+      } finally {
+        if (alive) setLoadingDistricts(false);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Load cities whenever district changes
+  useEffect(() => {
+    let alive = true;
+    if (!districtId) {
+      setCities([]);
+      return () => {
+        alive = false;
+      };
+    }
+
+    (async () => {
+      try {
+        setLoadingCities(true);
+        setError("");
+        const res = await getCities(districtId);
+        if (!alive) return;
+        setCities(res.items || []);
+      } catch (e) {
+        if (!alive) return;
+        setError(
+          e?.response?.data?.message || e.message || "Failed to load cities"
+        );
+        setCities([]);
+      } finally {
+        if (alive) setLoadingCities(false);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [districtId]);
 
   const setDistrict = (value) => {
+    const selected = districts.find((d) => String(d.id) === String(value));
     setForm((p) => ({
       ...p,
-      district: value,
-      city: "", // reset city when district changes
+      district_id: value,
+      district: selected?.name || "",
+      city_id: "",
+      city: "",
     }));
   };
 
   const setCity = (value) => {
-    setForm((p) => ({ ...p, city: value }));
+    const selected = cities.find((c) => String(c.id) === String(value));
+    setForm((p) => ({
+      ...p,
+      city_id: value,
+      city: selected?.name || "",
+    }));
   };
+
+  const districtName = useMemo(() => {
+    if (!districtId) return form?.district || "";
+    return districts.find((d) => String(d.id) === String(districtId))?.name || "";
+  }, [districtId, districts, form?.district]);
+
+  const cityName = useMemo(() => {
+    if (!cityId) return form?.city || "";
+    return cities.find((c) => String(c.id) === String(cityId))?.name || "";
+  }, [cityId, cities, form?.city]);
 
   return (
     <div className="card bg-base-100 shadow">
@@ -59,19 +111,26 @@ export default function Step3Location({ form, setForm }) {
 
         <div className="divider my-0" />
 
+        {error ? (
+          <div className="alert alert-error text-sm" role="alert">
+            {error}
+          </div>
+        ) : null}
+
         <div className="grid md:grid-cols-2 gap-3">
           {/* District */}
           <div>
             <label className="text-xs text-base-content/60">District *</label>
             <select
               className="select select-bordered w-full"
-              value={district}
+              value={districtId}
               onChange={(e) => setDistrict(e.target.value)}
+              disabled={loadingDistricts}
             >
-              <option value="">Select district</option>
-              {DISTRICTS.map((d) => (
-                <option key={d} value={d}>
-                  {d}
+              <option value="">{loadingDistricts ? "Loading…" : "Select district"}</option>
+              {districts.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
                 </option>
               ))}
             </select>
@@ -85,16 +144,20 @@ export default function Step3Location({ form, setForm }) {
             <label className="text-xs text-base-content/60">City *</label>
             <select
               className="select select-bordered w-full"
-              value={city}
+              value={cityId}
               onChange={(e) => setCity(e.target.value)}
-              disabled={!district}
+              disabled={!districtId || loadingCities}
             >
               <option value="">
-                {district ? "Select city" : "Select district first"}
+                {districtId
+                  ? loadingCities
+                    ? "Loading…"
+                    : "Select city"
+                  : "Select district first"}
               </option>
               {cities.map((c) => (
-                <option key={c} value={c}>
-                  {c}
+                <option key={c.id} value={c.id}>
+                  {c.name}
                 </option>
               ))}
             </select>
@@ -108,7 +171,9 @@ export default function Step3Location({ form, setForm }) {
         <div className="bg-base-200 rounded-2xl p-4">
           <div className="text-xs text-base-content/60">Preview</div>
           <div className="mt-1 font-semibold">
-            {city && district ? `${city}, ${district}` : "Location not selected"}
+            {cityName && districtName
+              ? `${cityName}, ${districtName}`
+              : "Location not selected"}
           </div>
         </div>
       </div>

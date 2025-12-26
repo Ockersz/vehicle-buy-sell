@@ -6,8 +6,8 @@ export async function getDistricts() {
 }
 
 export async function getCities(district_id) {
-  const { data } = await api.get("/locations/cities", {
-    params: district_id ? { district_id } : {},
-  });
+  if (!district_id) return { items: [] };
+
+  const { data } = await api.get(`/locations/districts/${district_id}/cities`);
   return data; // { items }
 }
