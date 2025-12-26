@@ -1,0 +1,1262 @@
+openapi: 3.0.3
+info:
+  title: Vehicle Marketplace API
+  version: 1.0.0
+  description: Express backend API (Auth + Listings + Favorites + Offers + Saved Searches + Notifications + Reports + Admin + Locations + Uploads)
+
+servers:
+  - url: http://localhost:4000
+    description: Local dev
+
+tags:
+  - name: Auth
+  - name: Listings
+  - name: Favorites
+  - name: Offers
+  - name: Saved Searches
+  - name: Notifications
+  - name: Reports
+  - name: Admin
+  - name: Locations
+  - name: Uploads
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ApiOk:
+      type: object
+      properties:
+        ok: { type: boolean, example: true }
+
+    ApiError:
+      type: object
+      properties:
+        ok: { type: boolean, example: false }
+        message: { type: string, example: 'Invalid request' }
+
+    AuthRequestOtpRequest:
+      type: object
+      required: [phone]
+      properties:
+        phone:
+          type: string
+          example: '+94770000000'
+
+    AuthVerifyOtpRequest:
+      type: object
+      required: [phone, otp]
+      properties:
+        phone: { type: string, example: '+94770000000' }
+        otp: { type: string, example: '123456' }
+
+    AuthVerifyOtpResponse:
+      type: object
+      properties:
+        ok: { type: boolean, example: true }
+        access_token: { type: string, example: 'eyJhbGciOi...' }
+        refresh_token: { type: string, example: 'eyJhbGciOi...' }
+
+    ListingImageInput:
+      type: object
+      required: [url]
+      properties:
+        url: { type: string, example: 'https://example.com/listings/1.jpg' }
+        sort_order: { type: integer, example: 0 }
+
+    ListingCreateRequest:
+      type: object
+      required:
+        - vehicle_type
+        - make
+        - model
+        - year
+        - condition_type
+        - price_lkr
+        - fuel_type
+        - transmission
+        - district_id
+        - city_id
+        - title
+      properties:
+        vehicle_type: { type: string, example: 'CAR' }
+        make: { type: string, example: 'Toyota' }
+        model: { type: string, example: 'Prius' }
+        model_variant: { type: string, nullable: true, example: 'G Touring' }
+        year: { type: integer, example: 2015 }
+        condition_type: { type: string, example: 'USED' }
+        price_lkr: { type: integer, example: 7200000 }
+        mileage_km: { type: integer, nullable: true, example: 120000 }
+        fuel_type: { type: string, example: 'HYBRID' }
+        transmission: { type: string, example: 'AUTO' }
+        district_id: { type: integer, example: 5 }
+        city_id: { type: integer, example: 1 }
+        title: { type: string, example: 'Toyota Prius 2015' }
+        description: { type: string, nullable: true, example: 'Good condition' }
+        images:
+          type: array
+          items: { $ref: '#/components/schemas/ListingImageInput' }
+
+    ListingPatchRequest:
+      type: object
+      description: Partial updates for listing.
+      properties:
+        price_lkr: { type: integer, example: 6990000 }
+        description: { type: string, example: 'Updated description' }
+        title: { type: string, example: 'Updated title' }
+
+    ListingResponse:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        seller_id: { type: integer, example: 10 }
+        status: { type: string, example: 'ACTIVE' }
+        vehicle_type: { type: string, example: 'CAR' }
+        make: { type: string, example: 'Toyota' }
+        model: { type: string, example: 'Prius' }
+        year: { type: integer, example: 2015 }
+        price_lkr: { type: integer, example: 7200000 }
+        district_id: { type: integer, example: 5 }
+        city_id: { type: integer, example: 1 }
+        title: { type: string, example: 'Toyota Prius 2015' }
+        description: { type: string, nullable: true }
+
+    PaginationResponse:
+      type: object
+      properties:
+        page: { type: integer, example: 1 }
+        page_size: { type: integer, example: 20 }
+        total: { type: integer, example: 123 }
+
+    OfferCreateRequest:
+      type: object
+      required: [amount_lkr]
+      properties:
+        amount_lkr: { type: integer, example: 6800000 }
+        message: { type: string, nullable: true, example: 'Can you do 6.8m?' }
+
+    OfferUpdateRequest:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [ACCEPT, COUNTER, DECLINE]
+          example: COUNTER
+        counter_amount_lkr:
+          type: integer
+          nullable: true
+          example: 7000000
+        message:
+          type: string
+          nullable: true
+          example: 'Lowest is 7.0m'
+
+    SavedSearchCreateRequest:
+      type: object
+      required: [name, query]
+      properties:
+        name: { type: string, example: 'Prius under 8M - Colombo' }
+        query:
+          type: object
+          additionalProperties: true
+          example:
+            vehicle_type: 'CAR'
+            make: 'Toyota'
+            model: 'Prius'
+            max_price: 8000000
+            district_id: 5
+            sort: 'LATEST'
+        is_alert_enabled: { type: boolean, example: false }
+        alert_frequency:
+          type: string
+          nullable: true
+          enum: [INSTANT, DAILY, WEEKLY]
+          example: null
+
+    SavedSearchPatchRequest:
+      type: object
+      properties:
+        name: { type: string, example: 'Prius under 7.5M - Colombo' }
+        query:
+          type: object
+          additionalProperties: true
+        is_alert_enabled: { type: boolean }
+        alert_frequency:
+          type: string
+          nullable: true
+          enum: [INSTANT, DAILY, WEEKLY]
+
+    NotificationMarkReadRequest:
+      type: object
+      properties:
+        ids:
+          type: array
+          items: { type: integer }
+          example: [1, 2, 3]
+        mark_all:
+          type: boolean
+          example: false
+
+    NotificationPrefsPatchRequest:
+      type: object
+      properties:
+        in_app_enabled: { type: boolean, example: true }
+        email_enabled: { type: boolean, example: false }
+        sms_enabled: { type: boolean, example: false }
+        push_enabled: { type: boolean, example: false }
+
+    NotificationTestCreateRequest:
+      type: object
+      properties:
+        type: { type: string, example: 'SYSTEM' }
+        title: { type: string, example: 'Hello!' }
+        body:
+          {
+            type: string,
+            nullable: true,
+            example: 'This is a test notification',
+          }
+        data:
+          type: object
+          nullable: true
+          additionalProperties: true
+          example: { hello: true }
+
+    ReportCreateRequest:
+      type: object
+      required: [entity_type, entity_id, reason]
+      properties:
+        entity_type:
+          type: string
+          enum: [LISTING, USER, OFFER]
+          example: LISTING
+        entity_id: { type: integer, example: 123 }
+        reason:
+          type: string
+          enum: [SCAM, SPAM, ABUSE, WRONG_INFO, OTHER]
+          example: SCAM
+        description:
+          type: string
+          nullable: true
+          example: 'Looks suspicious'
+
+    AdminUserStatusPatchRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ACTIVE, SUSPENDED, BANNED]
+          example: SUSPENDED
+        suspended_until:
+          type: string
+          nullable: true
+          format: date-time
+          example: '2030-01-01T00:00:00.000Z'
+        note:
+          type: string
+          nullable: true
+          example: 'Suspicious activity'
+
+    AdminFlagPatchRequest:
+      type: object
+      required: [enabled]
+      properties:
+        enabled: { type: boolean, example: true }
+        note: { type: string, nullable: true, example: 'Premium featured' }
+
+    AdminRemoveListingRequest:
+      type: object
+      properties:
+        note: { type: string, nullable: true, example: 'Reported as scam' }
+
+    AdminReportUpdateRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [OPEN, IN_REVIEW, RESOLVED, REJECTED]
+          example: RESOLVED
+        admin_note:
+          type: string
+          nullable: true
+          example: 'Confirmed scam, removed listing'
+        action:
+          type: string
+          enum: [NONE, REMOVE_LISTING, SUSPEND_USER, BAN_USER]
+          example: REMOVE_LISTING
+        suspended_until:
+          type: string
+          nullable: true
+          format: date-time
+          example: '2030-01-01T00:00:00.000Z'
+
+    LocationDistrict:
+      type: object
+      properties:
+        id: { type: integer, example: 5 }
+        name: { type: string, example: 'Colombo' }
+
+    LocationCity:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        district_id: { type: integer, example: 5 }
+        name: { type: string, example: 'Colombo 03' }
+
+    UploadPresignRequest:
+      type: object
+      required: [file_name, content_type]
+      properties:
+        file_name: { type: string, example: 'car1.jpg' }
+        content_type: { type: string, example: 'image/jpeg' }
+
+    UploadPresignResponse:
+      type: object
+      properties:
+        ok: { type: boolean, example: true }
+        upload_url: { type: string, example: 'https://...' }
+        key: { type: string, example: 'uploads/2025/u10/abcd1234.jpg' }
+        public_url:
+          type: string
+          example: 'http://localhost:9000/vehicle-images/uploads/2025/u10/abcd1234.jpg'
+
+    UploadPresignMultiRequest:
+      type: object
+      required: [files]
+      properties:
+        files:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items: { $ref: '#/components/schemas/UploadPresignRequest' }
+
+    UploadPresignMultiResponse:
+      type: object
+      properties:
+        ok: { type: boolean, example: true }
+        uploads:
+          type: array
+          items:
+            type: object
+            properties:
+              upload_url: { type: string }
+              key: { type: string }
+              public_url: { type: string }
+
+    UploadDeleteRequest:
+      type: object
+      required: [key]
+      properties:
+        key: { type: string, example: 'uploads/2025/u10/abcd1234.jpg' }
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiOk' }
+
+  /auth/request-otp:
+    post:
+      tags: [Auth]
+      summary: Request OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AuthRequestOtpRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiOk' }
+
+  /auth/verify-otp:
+    post:
+      tags: [Auth]
+      summary: Verify OTP and get tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AuthVerifyOtpRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthVerifyOtpResponse' }
+
+  /locations/districts:
+    get:
+      tags: [Locations]
+      summary: List districts
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/LocationDistrict' }
+
+  /locations/districts/{districtId}/cities:
+    get:
+      tags: [Locations]
+      summary: List cities for a district
+      parameters:
+        - in: path
+          name: districtId
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/LocationCity' }
+
+  /locations/search:
+    get:
+      tags: [Locations]
+      summary: Search districts/cities (typeahead)
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema: { type: string, example: 'Colo' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  districts:
+                    type: array
+                    items: { $ref: '#/components/schemas/LocationDistrict' }
+                  cities:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        name: { type: string }
+                        district_id: { type: integer }
+                        district_name: { type: string }
+
+  /uploads/presign:
+    post:
+      tags: [Uploads]
+      summary: Presign single image upload (PUT URL)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UploadPresignRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UploadPresignResponse' }
+
+  /uploads/presign-multi:
+    post:
+      tags: [Uploads]
+      summary: Presign multiple image uploads (max 10)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UploadPresignMultiRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                { $ref: '#/components/schemas/UploadPresignMultiResponse' }
+
+  /uploads:
+    delete:
+      tags: [Uploads]
+      summary: Delete an uploaded object by key (MVP only own key prefix)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UploadDeleteRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  message: { type: string, example: 'Deleted' }
+
+  /listings:
+    get:
+      tags: [Listings]
+      summary: Search listings
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: page_size
+          schema: { type: integer, default: 20 }
+        - in: query
+          name: sort
+          schema: { type: string, example: 'LATEST' }
+        - in: query
+          name: vehicle_type
+          schema: { type: string, example: 'CAR' }
+        - in: query
+          name: make
+          schema: { type: string, example: 'Toyota' }
+        - in: query
+          name: model
+          schema: { type: string, example: 'Prius' }
+        - in: query
+          name: min_price
+          schema: { type: integer, example: 1000000 }
+        - in: query
+          name: max_price
+          schema: { type: integer, example: 20000000 }
+        - in: query
+          name: district_id
+          schema: { type: integer, example: 5 }
+        - in: query
+          name: city_id
+          schema: { type: integer, example: 1 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiOk'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/ListingResponse' }
+                      page: { type: integer }
+                      page_size: { type: integer }
+                      total: { type: integer }
+
+    post:
+      tags: [Listings]
+      summary: Create listing
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ListingCreateRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiOk'
+                  - type: object
+                    properties:
+                      listing: { $ref: '#/components/schemas/ListingResponse' }
+
+  /listings/{id}:
+    get:
+      tags: [Listings]
+      summary: Get listing by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiOk'
+                  - type: object
+                    properties:
+                      listing: { $ref: '#/components/schemas/ListingResponse' }
+
+    patch:
+      tags: [Listings]
+      summary: Update listing
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ListingPatchRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiOk' }
+
+    delete:
+      tags: [Listings]
+      summary: Delete listing (soft remove)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiOk' }
+
+  /listings/{id}/pause:
+    post:
+      tags: [Listings]
+      summary: Pause listing
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiOk' }
+
+  /listings/{id}/unpause:
+    post:
+      tags: [Listings]
+      summary: Unpause listing
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiOk' }
+
+  /listings/{id}/renew:
+    post:
+      tags: [Listings]
+      summary: Renew listing
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiOk' }
+
+  /listings/{id}/offers:
+    post:
+      tags: [Offers]
+      summary: Create offer on a listing (buyer)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OfferCreateRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiOk'
+                  - type: object
+                    properties:
+                      offer:
+                        type: object
+                        additionalProperties: true
+
+  /favorites:
+    get:
+      tags: [Favorites]
+      summary: List my favorites
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: page_size
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiOk'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { type: object, additionalProperties: true }
+
+  /favorites/{listingId}:
+    post:
+      tags: [Favorites]
+      summary: Add favorite
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: listingId
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiOk' }
+
+    delete:
+      tags: [Favorites]
+      summary: Remove favorite
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: listingId
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiOk' }
+
+  /offers/seller:
+    get:
+      tags: [Offers]
+      summary: Seller inbox
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, example: 'PENDING' }
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: page_size
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiOk'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { type: object, additionalProperties: true }
+
+  /offers/me:
+    get:
+      tags: [Offers]
+      summary: Buyer sent offers
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, example: 'PENDING' }
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: page_size
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiOk'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { type: object, additionalProperties: true }
+
+  /offers/{id}:
+    patch:
+      tags: [Offers]
+      summary: Seller updates offer (accept/counter/decline)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OfferUpdateRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiOk' }
+
+  /saved-searches:
+    get:
+      tags: [Saved Searches]
+      summary: List my saved searches
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiOk'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { type: object, additionalProperties: true }
+
+    post:
+      tags: [Saved Searches]
+      summary: Create saved search
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SavedSearchCreateRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiOk' }
+
+  /saved-searches/{id}:
+    patch:
+      tags: [Saved Searches]
+      summary: Update saved search
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SavedSearchPatchRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiOk' }
+
+    delete:
+      tags: [Saved Searches]
+      summary: Delete saved search
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiOk' }
+
+  /notifications/me:
+    get:
+      tags: [Notifications]
+      summary: List my notifications
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: unread_only
+          schema: { type: integer, enum: [0, 1], default: 0 }
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: page_size
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiOk'
+                  - $ref: '#/components/schemas/PaginationResponse'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { type: object, additionalProperties: true }
+
+  /notifications/mark-read:
+    post:
+      tags: [Notifications]
+      summary: Mark notifications read
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NotificationMarkReadRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiOk' }
+
+  /notifications/preferences:
+    get:
+      tags: [Notifications]
+      summary: Get notification preferences
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiOk' }
+
+    patch:
+      tags: [Notifications]
+      summary: Update notification preferences
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              { $ref: '#/components/schemas/NotificationPrefsPatchRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiOk' }
+
+  /notifications/test:
+    post:
+      tags: [Notifications]
+      summary: Create test notification (dev)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              { $ref: '#/components/schemas/NotificationTestCreateRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiOk' }
+
+  /reports:
+    post:
+      tags: [Reports]
+      summary: Create report (listing/user/offer)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReportCreateRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiOk' }
+
+  /reports/me:
+    get:
+      tags: [Reports]
+      summary: List my reports
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: page_size
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiOk'
+                  - $ref: '#/components/schemas/PaginationResponse'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { type: object, additionalProperties: true }
+
+  /admin/users:
+    get:
+      tags: [Admin]
+      summary: Admin list users
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, example: 'ACTIVE' }
+        - in: query
+          name: q
+          schema: { type: string, example: '+9477' }
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: page_size
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiOk'
+                  - $ref: '#/components/schemas/PaginationResponse'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { type: object, additionalProperties: true }
+
+  /admin/users/{id}/status:
+    patch:
+      tags: [Admin]
+      summary: Admin update user status (active/suspended/banned)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminUserStatusPatchRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiOk' }
+
+  /admin/listings/{id}/remove:
+    patch:
+      tags: [Admin]
+      summary: Admin remove listing
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminRemoveListingRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiOk' }
+
+  /admin/listings/{id}/feature:
+    patch:
+      tags: [Admin]
+      summary: Admin set listing featured
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminFlagPatchRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiOk' }
+
+  /admin/listings/{id}/highlight:
+    patch:
+      tags: [Admin]
+      summary: Admin set listing highlighted
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminFlagPatchRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiOk' }
+
+  /admin/reports:
+    get:
+      tags: [Admin]
+      summary: Admin list reports
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, example: 'OPEN' }
+        - in: query
+          name: entity_type
+          schema: { type: string, example: 'LISTING' }
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: page_size
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiOk'
+                  - $ref: '#/components/schemas/PaginationResponse'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { type: object, additionalProperties: true }
+
+  /admin/reports/{id}:
+    patch:
+      tags: [Admin]
+      summary: Admin update report (status/note + optional auto-action)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminReportUpdateRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiOk' }

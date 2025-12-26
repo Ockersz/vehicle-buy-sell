@@ -1,0 +1,1099 @@
+{
+  "info": {
+    "name": "Vehicle Marketplace API (Auth + Listings)",
+    "_postman_id": "b4f1c7b3-6d3e-4e4d-9d92-31c6e5aa8d01",
+    "description": "Postman collection for Express backend: Auth (OTP + JWT) and Listings CRUD + Search.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Request OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/auth/request-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "request-otp"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{phone}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Verify OTP (stores accessToken)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('ok=true', function () {",
+                  "  pm.expect(pm.response.json().ok).to.eql(true);",
+                  "});",
+                  "",
+                  "const data = pm.response.json();",
+                  "if (data && data.access_token) {",
+                  "  pm.environment.set('accessToken', data.access_token);",
+                  "}",
+                  "if (data && data.refresh_token) {",
+                  "  pm.environment.set('refreshToken', data.refresh_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "verify-otp"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{phone}}\",\n  \"otp\": \"123456\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Verify OTP (Seller) -> stores sellerAccessToken",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('ok=true', function () {",
+                  "  pm.expect(pm.response.json().ok).to.eql(true);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "if (data && data.access_token) pm.environment.set('sellerAccessToken', data.access_token);",
+                  "if (data && data.refresh_token) pm.environment.set('sellerRefreshToken', data.refresh_token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "verify-otp"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{sellerPhone}}\",\n  \"otp\": \"123456\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Verify OTP (Buyer) -> stores buyerAccessToken",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('ok=true', function () {",
+                  "  pm.expect(pm.response.json().ok).to.eql(true);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "if (data && data.access_token) pm.environment.set('buyerAccessToken', data.access_token);",
+                  "if (data && data.refresh_token) pm.environment.set('buyerRefreshToken', data.refresh_token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "verify-otp"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{buyerPhone}}\",\n  \"otp\": \"123456\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Verify OTP (Admin) -> stores adminAccessToken",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data && data.access_token) pm.environment.set('adminAccessToken', data.access_token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "verify-otp"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{adminPhone}}\",\n  \"otp\": \"123456\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Admin: List Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/reports?status=OPEN&page=1&page_size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "reports"],
+              "query": [
+                { "key": "status", "value": "OPEN" },
+                { "key": "page", "value": "1" },
+                { "key": "page_size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin: Update Report (Resolve + remove listing)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/reports/{{reportId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "reports", "{{reportId}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"RESOLVED\",\n  \"admin_note\": \"Confirmed scam, removed listing\",\n  \"action\": \"REMOVE_LISTING\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Listings",
+      "item": [
+        {
+          "name": "Create Listing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('created', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200,201]);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "if (data && data.listing && data.listing.id) {",
+                  "  pm.environment.set('listingId', data.listing.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/listings",
+              "host": ["{{baseUrl}}"],
+              "path": ["listings"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicle_type\": \"CAR\",\n  \"make\": \"Toyota\",\n  \"model\": \"Prius\",\n  \"model_variant\": \"G Touring\",\n  \"year\": 2015,\n  \"condition_type\": \"USED\",\n  \"price_lkr\": 7200000,\n  \"mileage_km\": 120000,\n  \"fuel_type\": \"HYBRID\",\n  \"transmission\": \"AUTO\",\n  \"district_id\": 5,\n  \"city_id\": 1,\n  \"title\": \"Toyota Prius 2015\",\n  \"description\": \"Good condition\",\n  \"images\": [\n    { \"url\": \"https://example.com/listings/demo1.jpg\", \"sort_order\": 0 }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Listing by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/listings/{{listingId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["listings", "{{listingId}}"]
+            }
+          }
+        },
+        {
+          "name": "Search Listings (basic)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/listings?sort=LATEST&page=1&page_size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["listings"],
+              "query": [
+                { "key": "sort", "value": "LATEST" },
+                { "key": "page", "value": "1" },
+                { "key": "page_size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search Listings (with filters)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/listings?vehicle_type=CAR&make=Toyota&min_price=1000000&max_price=20000000&district_id=5&sort=LATEST&page=1&page_size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["listings"],
+              "query": [
+                { "key": "vehicle_type", "value": "CAR" },
+                { "key": "make", "value": "Toyota" },
+                { "key": "min_price", "value": "1000000" },
+                { "key": "max_price", "value": "20000000" },
+                { "key": "district_id", "value": "5" },
+                { "key": "sort", "value": "LATEST" },
+                { "key": "page", "value": "1" },
+                { "key": "page_size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Listing (price/desc)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/listings/{{listingId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["listings", "{{listingId}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price_lkr\": 6990000,\n  \"description\": \"Updated description\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Pause Listing",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/listings/{{listingId}}/pause",
+              "host": ["{{baseUrl}}"],
+              "path": ["listings", "{{listingId}}", "pause"]
+            }
+          }
+        },
+        {
+          "name": "Unpause Listing",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/listings/{{listingId}}/unpause",
+              "host": ["{{baseUrl}}"],
+              "path": ["listings", "{{listingId}}", "unpause"]
+            }
+          }
+        },
+        {
+          "name": "Renew Listing",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/listings/{{listingId}}/renew",
+              "host": ["{{baseUrl}}"],
+              "path": ["listings", "{{listingId}}", "renew"]
+            }
+          }
+        },
+        {
+          "name": "Delete Listing (soft remove)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/listings/{{listingId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["listings", "{{listingId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Favorites",
+      "item": [
+        {
+          "name": "Add Favorite",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/favorites/{{listingId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites", "{{listingId}}"]
+            }
+          }
+        },
+        {
+          "name": "List My Favorites",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/favorites?page=1&page_size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "page_size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Remove Favorite",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/favorites/{{listingId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["favorites", "{{listingId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Offers",
+      "item": [
+        {
+          "name": "Create Offer on Listing (Buyer)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data && data.offer && data.offer.id) {",
+                  "  pm.environment.set('offerId', data.offer.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{buyerAccessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/listings/{{listingId}}/offers",
+              "host": ["{{baseUrl}}"],
+              "path": ["listings", "{{listingId}}", "offers"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount_lkr\": 6800000,\n  \"message\": \"Can you do 6.8m?\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Seller Inbox (Seller)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/offers/seller?status=PENDING&page=1&page_size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["offers", "seller"],
+              "query": [
+                { "key": "status", "value": "PENDING" },
+                { "key": "page", "value": "1" },
+                { "key": "page_size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "My Offers (Buyer)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{buyerAccessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/offers/me?page=1&page_size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["offers", "me"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "page_size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Accept Offer (Seller)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/offers/{{offerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["offers", "{{offerId}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"ACCEPT\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Counter Offer (Seller)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/offers/{{offerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["offers", "{{offerId}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"COUNTER\",\n  \"counter_amount_lkr\": 7000000,\n  \"message\": \"Lowest is 7.0m\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Decline Offer (Seller)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sellerAccessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/offers/{{offerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["offers", "{{offerId}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"DECLINE\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Saved Searches",
+      "item": [
+        {
+          "name": "Create Saved Search",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data && data.saved_search && data.saved_search.id) {",
+                  "  pm.environment.set('savedSearchId', data.saved_search.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/saved-searches",
+              "host": ["{{baseUrl}}"],
+              "path": ["saved-searches"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Prius under 8M - Colombo\",\n  \"query\": {\n    \"vehicle_type\": \"CAR\",\n    \"make\": \"Toyota\",\n    \"model\": \"Prius\",\n    \"max_price\": 8000000,\n    \"district_id\": 5,\n    \"sort\": \"LATEST\"\n  },\n  \"is_alert_enabled\": false\n}"
+            }
+          }
+        },
+        {
+          "name": "List My Saved Searches",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/saved-searches",
+              "host": ["{{baseUrl}}"],
+              "path": ["saved-searches"]
+            }
+          }
+        },
+        {
+          "name": "Update Saved Search",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/saved-searches/{{savedSearchId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["saved-searches", "{{savedSearchId}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Prius under 7.5M - Colombo\",\n  \"query\": {\n    \"vehicle_type\": \"CAR\",\n    \"make\": \"Toyota\",\n    \"model\": \"Prius\",\n    \"max_price\": 7500000,\n    \"district_id\": 5,\n    \"sort\": \"LATEST\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Saved Search",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/saved-searches/{{savedSearchId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["saved-searches", "{{savedSearchId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Get My Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/me?page=1&page_size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "me"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "page_size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Unread Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/me?unread_only=1&page=1&page_size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "me"],
+              "query": [
+                { "key": "unread_only", "value": "1" },
+                { "key": "page", "value": "1" },
+                { "key": "page_size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark Notification Read (by ids)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/mark-read",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "mark-read"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [1]\n}"
+            }
+          }
+        },
+        {
+          "name": "Mark All Read",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/mark-read",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "mark-read"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mark_all\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Notification Preferences",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/preferences",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "preferences"]
+            }
+          }
+        },
+        {
+          "name": "Update Notification Preferences",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/preferences",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "preferences"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"in_app_enabled\": true,\n  \"email_enabled\": false,\n  \"sms_enabled\": false,\n  \"push_enabled\": false\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Test Notification (dev)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/test",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "test"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"SYSTEM\",\n  \"title\": \"Hello!\",\n  \"body\": \"This is a test notification\",\n  \"data\": { \"hello\": true }\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Create Report (Listing)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reports",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entity_type\": \"LISTING\",\n  \"entity_id\": {{listingId}},\n  \"reason\": \"SCAM\",\n  \"description\": \"Looks suspicious\"\n}"
+            }
+          }
+        },
+        {
+          "name": "My Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reports/me?page=1&page_size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "me"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "page_size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin: List Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reports?status=OPEN&page=1&page_size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports"],
+              "query": [
+                { "key": "status", "value": "OPEN" },
+                { "key": "page", "value": "1" },
+                { "key": "page_size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin: Update Report (Resolve/Reject)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reports/{{reportId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "{{reportId}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"RESOLVED\",\n  \"admin_note\": \"Removed listing + warned user\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users?status=ACTIVE&page=1&page_size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users"],
+              "query": [
+                { "key": "status", "value": "ACTIVE" },
+                { "key": "page", "value": "1" },
+                { "key": "page_size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Suspend User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/{{userId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "{{userId}}", "status"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"SUSPENDED\",\n  \"suspended_until\": \"2030-01-01T00:00:00.000Z\",\n  \"note\": \"Suspicious activity\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Ban User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/{{userId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "{{userId}}", "status"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"BANNED\",\n  \"note\": \"Confirmed scam\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Activate User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/{{userId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users", "{{userId}}", "status"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\",\n  \"note\": \"Unbanned after review\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Remove Listing (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/listings/{{listingId}}/remove",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "listings", "{{listingId}}", "remove"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Reported as scam\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Set Listing Featured",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/listings/{{listingId}}/feature",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "listings", "{{listingId}}", "feature"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enabled\": true,\n  \"note\": \"Premium featured\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Set Listing Highlighted",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{adminAccessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/listings/{{listingId}}/highlight",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "listings", "{{listingId}}", "highlight"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enabled\": true,\n  \"note\": \"Boost package\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Locations",
+      "item": [
+        {
+          "name": "List Districts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/locations/districts",
+              "host": ["{{baseUrl}}"],
+              "path": ["locations", "districts"]
+            }
+          }
+        },
+        {
+          "name": "List Cities By District",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/locations/districts/5/cities",
+              "host": ["{{baseUrl}}"],
+              "path": ["locations", "districts", "5", "cities"]
+            }
+          }
+        },
+        {
+          "name": "Search Locations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/locations/search?q=Colo",
+              "host": ["{{baseUrl}}"],
+              "path": ["locations", "search"],
+              "query": [{ "key": "q", "value": "Colo" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Uploads",
+      "item": [
+        {
+          "name": "Presign One",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/uploads/presign",
+              "host": ["{{baseUrl}}"],
+              "path": ["uploads", "presign"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"file_name\": \"car1.jpg\",\n  \"content_type\": \"image/jpeg\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Presign Multi (max 10)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/uploads/presign-multi",
+              "host": ["{{baseUrl}}"],
+              "path": ["uploads", "presign-multi"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"files\": [\n    { \"file_name\": \"car1.jpg\", \"content_type\": \"image/jpeg\" },\n    { \"file_name\": \"car2.webp\", \"content_type\": \"image/webp\" }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Object (by key)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/uploads",
+              "host": ["{{baseUrl}}"],
+              "path": ["uploads"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"uploads/2025/u10/xxxx.jpg\"\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
