@@ -1,20 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import ListingCard from "../components/listing/ListingCard";
+import { useEffect, useState } from "react";
 import { searchListings } from "../services/listings";
-import { getDistricts, getCities } from "../services/locations";
-import { useLanguage } from "../app/LanguageProvider";
-
-const vehicleTypes = ["CAR", "VAN", "SUV", "BIKE", "THREE_WHEEL", "BUS", "LORRY", "HEAVY", "TRACTOR", "BOAT", "OTHER"];
-const conditionTypes = ["NEW", "USED", "RECONDITIONED"];
-const fuelTypes = ["PETROL", "DIESEL", "HYBRID", "ELECTRIC", "PLUGIN_HYBRID"];
-const transmissions = ["AUTO", "MANUAL", "TRIPTRONIC", "TIPTRONIC"];
-const sortOptions = [
-  { value: "latest", label: "Latest" },
-  { value: "price_asc", label: "Price: Low to High" },
-  { value: "price_desc", label: "Price: High to Low" },
-  { value: "year_desc", label: "Year: New to Old" },
-];
 
 export default function Search() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -45,8 +30,27 @@ export default function Search() {
 
   useEffect(() => {
     (async () => {
-      const res = await getDistricts();
-      setDistricts(res?.items || []);
+      try {
+        setLoading(true);
+        setError("");
+
+        const res = await searchListings({
+          page: 1,
+          page_size: 10,
+        });
+
+        console.log("LISTINGS RESPONSE:", res);
+        setData(res);
+      } catch (err) {
+        console.error(err);
+        setError(
+          err?.response?.data?.message ||
+            err.message ||
+            "Failed to load listings"
+        );
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
 
