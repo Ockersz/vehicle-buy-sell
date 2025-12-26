@@ -2,6 +2,10 @@ import { useMemo, useState } from "react";
 import Step2Pricing from "./PostListingWizard/Step2Pricing";
 import Step3Location from "./PostListingWizard/Step3Location";
 import Step4Photos from "./PostListingWizard/Step4Photos";
+import OtpLoginCard from "../components/auth/OtpLoginCard";
+import { useAuth } from "../app/AuthProvider";
+import { useLanguage } from "../app/LanguageProvider";
+import { createListing } from "../services/listings";
 
 const STEPS = [
   { key: "basics", label: "Basics" },
@@ -26,7 +30,11 @@ const VEHICLE_TYPES = [
 ];
 
 export default function Sell() {
+  const { isAuthenticated } = useAuth();
+  const { t } = useLanguage();
   const [stepIndex, setStepIndex] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState("");
 
   const [form, setForm] = useState({
     vehicle_type: "CAR",
@@ -78,23 +86,47 @@ export default function Sell() {
     return true;
   }, [step.key, form]);
 
-  const next = () => {
+  const next = async () => {
+    if (stepIndex === STEPS.length - 1) {
+      await publish();
+      return;
+    }
     if (!canNext) return;
     setStepIndex((i) => Math.min(i + 1, STEPS.length - 1));
   };
 
   const back = () => setStepIndex((i) => Math.max(i - 1, 0));
 
+  const publish = async () => {
+    try {
+      setSubmitting(true);
+      setSubmitMessage("");
+      await createListing(form);
+      setSubmitMessage("Listing submitted for review.");
+    } catch (err) {
+      setSubmitMessage(err?.response?.data?.message || err.message || "Failed to submit");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="p-4 md:p-0 space-y-4 pb-20">
+        <OtpLoginCard />
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 md:p-0 space-y-4 pb-28">
-      {/* Header */}
       <div className="card bg-base-100 shadow">
         <div className="card-body p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h1 className="text-2xl font-bold">Post a Listing</h1>
+              <h1 className="text-2xl font-bold">{t("sell.title")}</h1>
               <p className="text-sm text-base-content/70">
-                Step {stepIndex + 1} of {STEPS.length}: {step.label}
+                {t("sell.step")} {stepIndex + 1} / {STEPS.length}: {step.label}
               </p>
             </div>
             <span className="badge badge-outline">{step.label}</span>
@@ -104,13 +136,8 @@ export default function Sell() {
         </div>
       </div>
 
-      {/* Step content */}
       {step.key === "basics" ? (
-        <StepBasics
-          form={form}
-          setForm={setForm}
-          VEHICLE_TYPES={VEHICLE_TYPES}
-        />
+        <StepBasics form={form} setForm={setForm} VEHICLE_TYPES={VEHICLE_TYPES} />
       ) : step.key === "pricing" ? (
         <Step2Pricing form={form} setForm={setForm} />
       ) : step.key === "location" ? (
@@ -118,14 +145,18 @@ export default function Sell() {
       ) : step.key === "photos" ? (
         <Step4Photos form={form} setForm={setForm} />
       ) : (
-        <ComingSoonCard title={step.label} />
+        <ReviewCard form={form} />
       )}
 
-      {/* Unified Action Bar (mobile + web) */}
+      {submitMessage && (
+        <div className="alert alert-info">
+          <span>{submitMessage}</span>
+        </div>
+      )}
+
       <div className="fixed bottom-16 md:bottom-6 left-0 right-0 px-3 z-20">
         <div className="max-w-6xl mx-auto">
           <div className="bg-base-100/90 backdrop-blur border border-base-300 shadow-lg rounded-2xl px-3 py-2 flex items-center gap-2">
-            {/* Back icon */}
             <button
               className="btn btn-ghost btn-square"
               onClick={back}
@@ -136,7 +167,6 @@ export default function Sell() {
               ←
             </button>
 
-            {/* Step dots */}
             <div className="flex items-center gap-1 px-1">
               {STEPS.map((_, idx) => (
                 <div
@@ -154,23 +184,16 @@ export default function Sell() {
 
             <div className="flex-1" />
 
-            {/* Secondary */}
-            <button
-              className="btn btn-ghost hidden sm:inline-flex"
-              onClick={() => setStepIndex(0)}
-            >
-              Save draft
+            <button className="btn btn-ghost hidden sm:inline-flex" onClick={() => setStepIndex(0)}>
+              {t("sell.save")}
             </button>
 
-            {/* Main CTA */}
             <button
-              className={`btn rounded-xl px-6 ${
-                canNext ? "btn-primary" : "btn-disabled"
-              }`}
+              className={`btn rounded-xl px-6 ${canNext || stepIndex === STEPS.length - 1 ? "btn-primary" : "btn-disabled"}`}
               onClick={next}
-              disabled={!canNext}
+              disabled={submitting || (!canNext && stepIndex !== STEPS.length - 1)}
             >
-              {stepIndex === STEPS.length - 1 ? "Publish" : "Continue"}
+              {stepIndex === STEPS.length - 1 ? t("sell.publish") : t("sell.continue")}
             </button>
           </div>
         </div>
@@ -182,40 +205,26 @@ export default function Sell() {
 function WizardStepper({ steps, activeIndex }) {
   return (
     <>
-      {/* Web stepper */}
       <div className="hidden md:flex items-center gap-2 mt-3">
         {steps.map((s, idx) => (
           <div key={s.key} className="flex items-center gap-2">
             <div
               className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
-                idx <= activeIndex
-                  ? "bg-primary text-primary-content"
-                  : "bg-base-200 text-base-content/60"
+                idx <= activeIndex ? "bg-primary text-primary-content" : "bg-base-200 text-base-content/60"
               }`}
             >
               {idx + 1}
             </div>
-            <div
-              className={`text-sm ${
-                idx === activeIndex ? "font-semibold" : "text-base-content/60"
-              }`}
-            >
+            <div className={`text-sm ${idx === activeIndex ? "font-semibold" : "text-base-content/60"}`}>
               {s.label}
             </div>
-            {idx < steps.length - 1 && (
-              <div className="w-8 h-[2px] bg-base-200" />
-            )}
+            {idx < steps.length - 1 && <div className="w-8 h-[2px] bg-base-200" />}
           </div>
         ))}
       </div>
 
-      {/* Mobile stepper */}
       <div className="md:hidden mt-3">
-        <progress
-          className="progress progress-primary w-full"
-          value={activeIndex + 1}
-          max={steps.length}
-        />
+        <progress className="progress progress-primary w-full" value={activeIndex + 1} max={steps.length} />
         <div className="flex justify-between text-xs text-base-content/60 mt-1">
           <span>{steps[0].label}</span>
           <span>{steps[steps.length - 1].label}</span>
@@ -231,15 +240,11 @@ function StepBasics({ form, setForm, VEHICLE_TYPES }) {
       <div className="card-body p-4 space-y-3">
         <div className="grid md:grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-base-content/60">
-              Vehicle type *
-            </label>
+            <label className="text-xs text-base-content/60">Vehicle type *</label>
             <select
               className="select select-bordered w-full"
               value={form.vehicle_type}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, vehicle_type: e.target.value }))
-              }
+              onChange={(e) => setForm((p) => ({ ...p, vehicle_type: e.target.value }))}
             >
               {VEHICLE_TYPES.map((t) => (
                 <option key={t} value={t}>
@@ -254,9 +259,7 @@ function StepBasics({ form, setForm, VEHICLE_TYPES }) {
             <select
               className="select select-bordered w-full"
               value={form.condition_type}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, condition_type: e.target.value }))
-              }
+              onChange={(e) => setForm((p) => ({ ...p, condition_type: e.target.value }))}
             >
               <option value="NEW">New</option>
               <option value="USED">Used</option>
@@ -280,9 +283,7 @@ function StepBasics({ form, setForm, VEHICLE_TYPES }) {
               className="input input-bordered w-full"
               placeholder="Prius, Alto, Pulsar…"
               value={form.model}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, model: e.target.value }))
-              }
+              onChange={(e) => setForm((p) => ({ ...p, model: e.target.value }))}
             />
           </div>
 
@@ -298,53 +299,56 @@ function StepBasics({ form, setForm, VEHICLE_TYPES }) {
           </div>
 
           <div>
-            <label className="text-xs text-base-content/60">
-              Title (optional)
-            </label>
+            <label className="text-xs text-base-content/60">Title (optional)</label>
             <input
               className="input input-bordered w-full"
               placeholder="e.g. Toyota Prius 2017 S Touring"
               value={form.title}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, title: e.target.value }))
-              }
+              onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
             />
           </div>
         </div>
 
         <div>
-          <label className="text-xs text-base-content/60">
-            Description (optional)
-          </label>
+          <label className="text-xs text-base-content/60">Description (optional)</label>
           <textarea
             className="textarea textarea-bordered w-full"
             rows={4}
             placeholder="Condition, service history, reason for selling, etc."
             value={form.description}
-            onChange={(e) =>
-              setForm((p) => ({ ...p, description: e.target.value }))
-            }
+            onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
           />
         </div>
 
-        <div className="text-xs text-base-content/50">
-          * Required fields. We’ll add suggested make/model lists later.
-        </div>
+        <div className="text-xs text-base-content/50">* Required fields. We’ll add suggested make/model lists later.</div>
       </div>
     </div>
   );
 }
 
-function ComingSoonCard({ title }) {
+function ReviewCard({ form }) {
   return (
     <div className="card bg-base-100 shadow">
-      <div className="card-body p-4">
-        <h2 className="font-semibold text-lg">{title}</h2>
-        <div className="divider my-2" />
-        <p className="text-sm text-base-content/70">
-          Next step UI will be added in the next message.
-        </p>
+      <div className="card-body p-4 space-y-2">
+        <h2 className="font-semibold text-lg">Review</h2>
+        <div className="grid md:grid-cols-2 gap-3 text-sm">
+          <Detail label="Vehicle" value={`${prettyType(form.vehicle_type)} • ${form.make} ${form.model}`} />
+          <Detail label="Year" value={form.year} />
+          <Detail label="Price" value={`LKR ${Number(form.price_lkr || 0).toLocaleString()}`} />
+          <Detail label="Mileage" value={form.mileage_km ? `${form.mileage_km} km` : "-"} />
+          <Detail label="Location" value={`${form.city || form.city_id}, ${form.district || form.district_id}`} />
+        </div>
+        <div className="text-sm text-base-content/70 whitespace-pre-wrap">{form.description}</div>
       </div>
+    </div>
+  );
+}
+
+function Detail({ label, value }) {
+  return (
+    <div className="p-3 bg-base-200 rounded-xl">
+      <div className="text-xs text-base-content/60">{label}</div>
+      <div className="font-semibold">{value || "-"}</div>
     </div>
   );
 }

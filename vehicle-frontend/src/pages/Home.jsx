@@ -1,50 +1,102 @@
-import ListingCard from "../components/listing/ListingCard";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import ListingCard from "../components/listing/ListingCard";
+import { searchListings } from "../services/listings";
+import { useLanguage } from "../app/LanguageProvider";
 
-const featured = [
-  {
-    id: 1,
-    title: "Toyota Prius 2017 S Touring",
-    district: "Colombo",
-    city: "Nugegoda",
-    year: 2017,
-    mileage: 78000,
-    price: 7850000,
-    featured: true,
-    boosted: true,
-    priceLabel: "FAIR",
-    image: "https://picsum.photos/600/400?car=1",
-  },
-  {
-    id: 2,
-    title: "Honda Fit GP5 2015 (Hybrid)",
-    district: "Gampaha",
-    city: "Negombo",
-    year: 2015,
-    mileage: 92000,
-    price: 6250000,
-    featured: true,
-    boosted: false,
-    priceLabel: "BELOW",
-    image: "https://picsum.photos/600/400?car=2",
-  },
-  {
-    id: 3,
-    title: "Suzuki Alto 2020 (Auto)",
-    district: "Kandy",
-    city: "Kandy",
-    year: 2020,
-    mileage: 41000,
-    price: 4450000,
-    featured: false,
-    boosted: true,
-    priceLabel: "ABOVE",
-    image: "https://picsum.photos/600/400?car=3",
-  },
-];
+export default function Home() {
+  const nav = useNavigate();
+  const { t } = useLanguage();
+  const [featured, setFeatured] = useState([]);
+  const [latest, setLatest] = useState([]);
 
-const latest = Array.from({ length: 8 }).map((_, i) => ({
-  id: 100 + i,
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await searchListings({ page: 1, page_size: 6, sort: "latest" });
+        setLatest((res?.items || []).map(mapListing));
+        setFeatured((res?.items || []).filter((x) => x.is_featured || x.is_boosted).map(mapListing).slice(0, 4));
+      } catch (err) {
+        console.error("load listings", err);
+      }
+    })();
+  }, []);
+
+  return (
+    <div className="p-4 md:p-0 space-y-5">
+      <div className="card bg-base-100 shadow overflow-hidden">
+        <div className="card-body bg-gradient-to-br from-primary/5 via-base-100 to-secondary/5">
+          <div className="flex flex-col md:flex-row md:items-center gap-4 justify-between">
+            <div className="space-y-2">
+              <h1 className="text-3xl md:text-4xl font-extrabold">{t("hero.title")}</h1>
+              <p className="text-sm md:text-base text-base-content/70">{t("hero.subtitle")}</p>
+
+              <div className="flex flex-col md:flex-row gap-2">
+                <input
+                  className="input input-bordered w-full md:w-96"
+                  placeholder={t("hero.searchPlaceholder")}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") nav(`/search?q=${encodeURIComponent(e.target.value)}`);
+                  }}
+                />
+                <div className="flex gap-2">
+                  <button className="btn btn-primary" onClick={() => nav("/search")}>
+                    {t("hero.ctaSearch")}
+                  </button>
+                  <button className="btn btn-outline" onClick={() => nav("/sell")}>
+                    {t("hero.ctaSell")}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 text-sm">
+              {["Cars", "SUV", "Bikes", "Vans", "EV", "Hybrids", "Three-wheel"].map((chip) => (
+                <span key={chip} className="badge badge-lg badge-outline">
+                  {chip}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {featured.length > 0 && (
+        <section className="space-y-3">
+          <SectionHeader title={t("section.featured")} action={t("list.viewAll")} onAction={() => nav("/search?sort=latest")} />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {featured.map((x) => (
+              <ListingCard key={x.id} item={x} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section className="space-y-3">
+        <SectionHeader title={t("section.latest")} action={t("list.viewAll")} onAction={() => nav("/search")} />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {(latest.length ? latest : placeholderLatest).map((x) => (
+            <ListingCard key={x.id} item={x} />
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function SectionHeader({ title, action, onAction }) {
+  return (
+    <div className="flex items-center justify-between px-1">
+      <h2 className="text-lg font-semibold">{title}</h2>
+      <button className="btn btn-link btn-sm" onClick={onAction}>
+        {action}
+      </button>
+    </div>
+  );
+}
+
+const placeholderLatest = Array.from({ length: 8 }).map((_, i) => ({
+  id: `placeholder-${i}`,
   title: i % 2 === 0 ? "Toyota Aqua 2016" : "Nissan X-Trail 2014",
   district: i % 2 === 0 ? "Colombo" : "Kurunegala",
   city: i % 2 === 0 ? "Colombo" : "Kuliyapitiya",
@@ -57,73 +109,18 @@ const latest = Array.from({ length: 8 }).map((_, i) => ({
   image: `https://picsum.photos/600/400?car=latest-${i}`,
 }));
 
-export default function Home() {
-  const nav = useNavigate();
-
-  return (
-    <div className="p-4 md:p-0 space-y-5">
-      {/* Hero/Search */}
-      <div className="card bg-base-100 shadow">
-        <div className="card-body">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-bold">Find your next ride</h1>
-              <p className="text-sm text-base-content/70">
-                Cars, bikes, vans, 3-wheelers & more — Sri Lanka.
-              </p>
-            </div>
-
-            <div className="hidden md:flex gap-2">
-              <button className="btn btn-outline">Post Ad</button>
-              <button className="btn btn-primary">Login</button>
-            </div>
-          </div>
-
-          <div className="mt-3 flex gap-2">
-            <input
-              className="input input-bordered w-full"
-              placeholder="Search make/model (e.g., Prius, Alto, CB150)"
-            />
-            <button className="btn btn-primary" onClick={() => nav("/search")}>
-              Search
-            </button>
-          </div>
-
-          <div className="mt-3 flex gap-2 flex-wrap">
-            <button className="btn btn-sm">Cars</button>
-            <button className="btn btn-sm">Bikes</button>
-            <button className="btn btn-sm">Vans</button>
-            <button className="btn btn-sm">3-Wheel</button>
-            <button className="btn btn-sm">Lorries</button>
-            <button className="btn btn-sm">Tractors</button>
-          </div>
-        </div>
-      </div>
-
-      {/* Featured */}
-      <SectionHeader title="Featured picks" action="View all" />
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        {featured.map((x) => (
-          <ListingCard key={x.id} item={x} />
-        ))}
-      </div>
-
-      {/* Latest */}
-      <SectionHeader title="Latest listings" action="Browse" />
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {latest.map((x) => (
-          <ListingCard key={x.id} item={x} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function SectionHeader({ title, action }) {
-  return (
-    <div className="flex items-center justify-between px-1">
-      <h2 className="text-lg font-semibold">{title}</h2>
-      <button className="btn btn-link btn-sm">{action}</button>
-    </div>
-  );
+function mapListing(item) {
+  return {
+    id: item.id,
+    title: item.title || `${item.make || ""} ${item.model || ""}`.trim(),
+    district: item.district_name || item.district_id,
+    city: item.city_name || item.city_id,
+    year: item.year,
+    mileage: item.mileage_km,
+    price: item.price_lkr,
+    featured: Boolean(item.is_featured),
+    boosted: Boolean(item.is_boosted),
+    priceLabel: item.price_label,
+    image: item.cover_image?.url || item.images?.[0]?.url || "https://picsum.photos/600/400?car=placeholder",
+  };
 }

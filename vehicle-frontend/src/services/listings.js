@@ -12,3 +12,8 @@ export async function getListing(id) {
   const { data } = await api.get(`/listings/${id}`);
   return data; // { listing }
 }
+
+export async function createListing(payload) {
+  const { data } = await api.post("/listings", payload);
+  return data;
+}

@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getListing } from "../services/listings"; // adjust path if needed
+import { useLanguage } from "../app/LanguageProvider";
 
 export default function ListingDetail() {
   const { id } = useParams();
   const nav = useNavigate();
+  const { t } = useLanguage();
 
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
@@ -41,7 +43,7 @@ export default function ListingDetail() {
         <div className="card bg-base-100 shadow">
           <div className="card-body p-6">
             <span className="loading loading-spinner loading-lg" />
-            <div className="text-sm text-base-content/70 mt-2">Loading listing...</div>
+            <div className="text-sm text-base-content/70 mt-2">{t("search.loading")}</div>
           </div>
         </div>
       </div>
@@ -53,10 +55,10 @@ export default function ListingDetail() {
       <div className="p-4">
         <div className="card bg-base-100 shadow">
           <div className="card-body p-6 space-y-3">
-            <div className="text-lg font-semibold">Couldn’t load listing</div>
+            <div className="text-lg font-semibold">{t("search.error")}</div>
             <div className="text-sm text-error">{err}</div>
             <button className="btn btn-outline" onClick={() => nav(-1)}>
-              Go back
+              {t("nav.home")}
             </button>
           </div>
         </div>
@@ -146,7 +148,7 @@ export default function ListingDetail() {
 
           <div className="card bg-base-100 shadow">
             <div className="card-body p-4">
-              <h2 className="font-semibold text-lg">Specs</h2>
+              <h2 className="font-semibold text-lg">{t("listing.specs")}</h2>
               <div className="divider my-2" />
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
                 <Spec label="Condition" value={listing.condition_type} />
@@ -161,7 +163,7 @@ export default function ListingDetail() {
 
           <div className="card bg-base-100 shadow">
             <div className="card-body p-4">
-              <h2 className="font-semibold text-lg">Description</h2>
+              <h2 className="font-semibold text-lg">{t("listing.description")}</h2>
               <div className="divider my-2" />
               <p className="text-sm text-base-content/80 mt-2 leading-relaxed">
                 {listing.description || "No description provided."}
@@ -173,14 +175,14 @@ export default function ListingDetail() {
         <div className="hidden md:block md:col-span-4">
           <div className="card bg-base-100 shadow sticky top-4">
             <div className="card-body p-4 space-y-3">
-              <div className="text-sm text-base-content/60">Seller contact</div>
+              <div className="text-sm text-base-content/60">{t("listing.contact")}</div>
               <div className="font-semibold">{listing.phone ? `+${listing.phone}` : "—"}</div>
 
               <a className="btn btn-primary w-full" href={telLink}>
-                Call seller
+                {t("listing.call")}
               </a>
               <a className="btn btn-success w-full" href={waLink} target="_blank" rel="noreferrer">
-                WhatsApp
+                {t("listing.whatsapp")}
               </a>
 
               <div className="divider my-1" />
@@ -199,10 +201,10 @@ export default function ListingDetail() {
       <div className="md:hidden fixed bottom-16 left-0 right-0 px-3">
         <div className="bg-base-100 border border-base-300 shadow rounded-2xl p-2 flex gap-2">
           <a className="btn btn-primary flex-1" href={telLink}>
-            Call
+            {t("listing.call")}
           </a>
           <a className="btn btn-success flex-1" href={waLink} target="_blank" rel="noreferrer">
-            WhatsApp
+            {t("listing.whatsapp")}
           </a>
         </div>
       </div>
