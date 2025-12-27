@@ -1,3 +1,4 @@
+// utils/jwt.js
 const jwt = require('jsonwebtoken');
 const { config } = require('../config/env');
 
@@ -25,9 +26,20 @@ function verifyRefreshToken(token) {
   return jwt.verify(token, config.jwt.refreshSecret);
 }
 
+function verifyAccessTokenSafe(token) {
+  try {
+    const payload = jwt.verify(token, config.jwt.accessSecret);
+    return { ok: true, payload };
+  } catch (e) {
+    if (e?.name === 'TokenExpiredError') return { ok: false, code: 'TOKEN_EXPIRED' };
+    return { ok: false, code: 'TOKEN_INVALID' };
+  }
+}
+
 module.exports = {
   signAccessToken,
   signRefreshToken,
   verifyAccessToken,
   verifyRefreshToken,
+  verifyAccessTokenSafe,
 };
