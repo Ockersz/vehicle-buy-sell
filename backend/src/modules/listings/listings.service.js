@@ -80,10 +80,16 @@ async function getListingById(id) {
     `SELECT
       l.*,
       d.name AS district_name,
-      c.name AS city_name
+      c.name AS city_name,
+      u.id AS seller_id,
+      u.full_name AS seller_display_name,
+      u.phone,
+      u.role,
+      u.created_at AS seller_member_since
     FROM listings l
     JOIN districts d ON d.id = l.district_id
     JOIN cities c ON c.id = l.city_id
+    JOIN users u ON u.id = l.seller_id
     WHERE l.id = :id
     LIMIT 1`,
     { id }
