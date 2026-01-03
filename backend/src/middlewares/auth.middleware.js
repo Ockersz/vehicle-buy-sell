@@ -1,4 +1,4 @@
-const { verifyAccessToken } = require('../utils/jwt');
+const { verifyAccessTokenSafe } = require('../utils/jwt');
 const { db } = require('../config/db');
 
 async function enforceUserStatus(userId) {
@@ -11,12 +11,10 @@ async function enforceUserStatus(userId) {
 
   const u = rows[0];
 
-  if (u.status === 'BANNED') {
+  if (u.status === 'BANNED')
     return { ok: false, code: 403, message: 'Account banned' };
-  }
 
   if (u.status === 'SUSPENDED') {
-    // Auto-un-suspend if time passed
     if (u.suspended_until) {
       const until = new Date(u.suspended_until);
       if (!Number.isNaN(until.getTime()) && until.getTime() <= Date.now()) {
@@ -37,50 +35,65 @@ async function enforceUserStatus(userId) {
   return { ok: true, user: u };
 }
 
-function requireAuth(req, res, next) {
-  const auth = req.headers.authorization || '';
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
-  if (!token)
-    return res.status(401).json({ ok: false, message: 'Unauthorized' });
+async function requireAuth(req, res, next) {
+  try {
+    const auth = req.headers.authorization || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : null;
+    if (!token)
+      return res
+        .status(401)
+        .json({ ok: false, code: 'NO_TOKEN', message: 'Unauthorized' });
 
-  (async () => {
-    try {
-      const payload = verifyAccessToken(token); // { id, role, phone }
-      if (!payload?.id)
-        return res.status(401).json({ ok: false, message: 'Unauthorized' });
-
-      const statusCheck = await enforceUserStatus(payload.id);
-      if (!statusCheck.ok) {
-        return res
-          .status(statusCheck.code)
-          .json({ ok: false, message: statusCheck.message });
-      }
-
-      // overwrite with DB truth (role/phone/status)
-      const u = statusCheck.user;
-      req.user = {
-        id: u.id,
-        role: u.role,
-        phone: u.phone,
-        status: u.status,
-        suspended_until: u.suspended_until,
-      };
-
-      return next();
-    } catch {
-      return res.status(401).json({ ok: false, message: 'Unauthorized' });
+    const v = verifyAccessTokenSafe(token);
+    if (!v.ok) {
+      // KEY: frontend will refresh only when TOKEN_EXPIRED
+      return res
+        .status(401)
+        .json({ ok: false, code: v.code, message: 'Unauthorized' });
     }
-  })();
+
+    const payload = v.payload; // { id, role, phone }
+    if (!payload?.id)
+      return res
+        .status(401)
+        .json({ ok: false, code: 'TOKEN_INVALID', message: 'Unauthorized' });
+
+    const statusCheck = await enforceUserStatus(payload.id);
+    if (!statusCheck.ok) {
+      return res
+        .status(statusCheck.code)
+        .json({ ok: false, message: statusCheck.message });
+    }
+
+    const u = statusCheck.user;
+    req.user = {
+      id: u.id,
+      role: u.role,
+      phone: u.phone,
+      status: u.status,
+      suspended_until: u.suspended_until,
+    };
+
+    return next();
+  } catch {
+    return res
+      .status(401)
+      .json({ ok: false, code: 'UNAUTHORIZED', message: 'Unauthorized' });
+  }
 }
 
 function requireRole(roles) {
+  const allowed = Array.isArray(roles) ? roles : [roles];
   return (req, res, next) => {
     if (!req.user)
       return res.status(401).json({ ok: false, message: 'Unauthorized' });
-    if (!roles.includes(req.user.role))
-      return res.status(403).json({ ok: false, message: 'Forbidden' });
+
+    const role = String(req.user.role || '').toUpperCase();
+    const ok = allowed.map((r) => String(r).toUpperCase()).includes(role);
+
+    if (!ok) return res.status(403).json({ ok: false, message: 'Forbidden' });
     next();
   };
 }
 
-module.exports = { requireAuth, requireRole };
+module.exports = { requireAuth, requireRole, enforceUserStatus };

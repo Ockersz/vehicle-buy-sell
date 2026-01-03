@@ -5,6 +5,7 @@ const morgan = require('morgan');
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
 const path = require('path');
+const cookieParser = require('cookie-parser');
 
 const { errorMiddleware } = require('./middlewares/error.middleware');
 
@@ -26,6 +27,7 @@ const app = express();
 app.use(helmet());
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '2mb' }));
+app.use(cookieParser());
 app.use(morgan('dev'));
 
 const swaggerDocument = YAML.load(path.join(__dirname, './docs/swagger.yaml'));

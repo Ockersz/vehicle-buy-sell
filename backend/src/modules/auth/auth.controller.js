@@ -30,4 +30,32 @@ async function verifyOtp(req, res, next) {
   }
 }
 
-module.exports = { requestOtp, verifyOtp };
+async function refresh(req, res, next) {
+  try {
+    const refreshToken = req.cookies?.refresh_token;
+    if (!refreshToken) {
+      return res.status(401).json({ ok: false, code: 'NO_REFRESH', message: 'Unauthorized' });
+    }
+
+    const result = await authService.refresh(refreshToken, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+
+    if (result.refreshToken) {
+      res.cookie('refresh_token', result.refreshToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        path: '/auth/refresh',
+        maxAge: 1000 * 60 * 60 * 24 * 30,
+      });
+    }
+
+    return res.json({ ok: true, accessToken: result.accessToken });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+module.exports = { requestOtp, verifyOtp, refresh };
