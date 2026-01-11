@@ -4,5 +4,37 @@
     "home": "Home",
     "sell": "Sell",
     "login": "Login"
+  },
+  "home": {
+    "vehicles": "vehicles",
+    "updating": "Updating…",
+    "filters": "Filters",
+    "sort": "Sort",
+    "noVehiclesFound": "No vehicles found for your filters.",
+    "prev": "Prev",
+    "next": "Next",
+    "page": "Page",
+    "close": "Close"
+  },
+  "filters": {
+    "vehicleType": "Vehicle Type",
+    "all": "All",
+    "make": "Make",
+    "model": "Model",
+    "fuelType": "Fuel Type",
+    "transmission": "Transmission",
+    "condition": "Condition",
+    "minPrice": "Min Price",
+    "maxPrice": "Max Price",
+    "mileageKm": "Mileage (km)",
+    "min": "Min",
+    "max": "Max",
+    "district": "District",
+    "city": "City",
+    "selectDistrictFirst": "Select district first",
+    "loading": "Loading...",
+    "any": "Any",
+    "apply": "Apply",
+    "clear": "Clear"
   }
 }
